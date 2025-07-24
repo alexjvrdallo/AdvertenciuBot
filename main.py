@@ -1,9 +1,12 @@
 import logging
-from telegram import Update, ChatPermissions
-from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, ContextTypes, ChatMemberHandler
 import os
 import re
 from datetime import datetime, timedelta
+from telegram import Update, ChatPermissions
+from telegram.ext import (
+    ApplicationBuilder, CommandHandler, MessageHandler,
+    filters, ContextTypes, ChatMemberHandler
+)
 
 TOKEN = os.getenv("BOT_TOKEN")
 logging.basicConfig(level=logging.INFO)
@@ -11,6 +14,7 @@ logger = logging.getLogger(__name__)
 
 warns = {}
 usernames = {}
+firstnames = {}
 
 BAD_WORDS = [
     "puta", "mierda", "cabron", "imbecil", "idiota", "perra", "pendejo",
@@ -18,18 +22,19 @@ BAD_WORDS = [
 ]
 
 def contains_bad_word(text):
-    return any(re.search(rf"\b{re.escape(word)}\b", text, re.IGNORECASE) for word in BAD_WORDS)
+    return any(re.search(rf"\\b{re.escape(word)}\\b", text, re.IGNORECASE) for word in BAD_WORDS)
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("Bot de moderación activado.")
+    await update.message.reply_text("🤖 Bot de moderación activo.")
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not update.message or not update.message.text:
         return
 
-    user_id = update.message.from_user.id
-    username = update.message.from_user.username or update.message.from_user.first_name
+    user = update.message.from_user
     chat_id = update.message.chat_id
+    user_id = user.id
+    username = user.username or user.first_name
 
     # Detectar groserías
     if contains_bad_word(update.message.text):
@@ -39,12 +44,18 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         await update.message.reply_text(f"⚠️ El @{username} tiene {count} advertencia(s).")
 
-        # Notificar a admins cada 2 advertencias
+        # Notificar a administradores cada 2 advertencias
         if count % 2 == 0:
-            admins = await context.bot.get_chat_administrators(chat_id)
-            for admin in admins:
-                if not admin.user.is_bot:
-                    await context.bot.send_message(admin.user.id, f"⚠️ El usuario @{username} ha recibido {count} advertencias.")
+            try:
+                admins = await context.bot.get_chat_administrators(chat_id)
+                for admin in admins:
+                    if not admin.user.is_bot:
+                        try:
+                            await context.bot.send_message(admin.user.id, f"⚠️ El usuario @{username} ha recibido {count} advertencias.")
+                        except Exception as e:
+                            logger.warning(f"No se pudo notificar al admin {admin.user.id}: {e}")
+            except Exception as e:
+                logger.error(f"Error al obtener administradores: {e}")
 
         # Silenciar cada 5 advertencias
         if count % 5 == 0:
@@ -53,23 +64,34 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await context.bot.restrict_chat_member(chat_id, user_id, ChatPermissions(can_send_messages=False), until_date=until_date)
             await context.bot.send_message(chat_id, f"🔇 @{username} ha sido silenciado por {duration} minutos tras {count} advertencias.")
 
-    # Verificar cambio de username
+    # Verificar cambio de nombre o username
     old_username = usernames.get(user_id)
-    current_username = update.message.from_user.username
-    if old_username and old_username != current_username:
-        await context.bot.send_message(chat_id, f"🔄 El usuario @{old_username} se cambió el nombre a @{current_username}.")
-    usernames[user_id] = current_username
+    if old_username and old_username != user.username:
+        await update.message.reply_text(f"🔄 El usuario @{old_username} se cambió el nombre a @{user.username}")
+    usernames[user_id] = user.username
+
+    old_firstname = firstnames.get(user_id)
+    if old_firstname and old_firstname != user.first_name:
+        await update.message.reply_text(f"🔄 El usuario cambió su nombre de "{old_firstname}" a "{user.first_name}"")
+    firstnames[user_id] = user.first_name
 
 async def member_update(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat_id = update.chat_member.chat.id
     user = update.chat_member.from_user
-    status = update.chat_member.new_chat_member.status
-    if status == "member":
-        if update.chat_member.old_chat_member.status in ["left", "kicked"]:
+    old_status = update.chat_member.old_chat_member.status
+    new_status = update.chat_member.new_chat_member.status
+
+    if old_status in ["left", "kicked"] and new_status == "member":
+        try:
             admins = await context.bot.get_chat_administrators(chat_id)
             for admin in admins:
                 if not admin.user.is_bot:
-                    await context.bot.send_message(admin.user.id, f"🚪 El usuario @{user.username or user.first_name} ha vuelto al grupo.")
+                    try:
+                        await context.bot.send_message(admin.user.id, f"🚪 El usuario @{user.username or user.first_name} ha vuelto al grupo.")
+                    except Exception as e:
+                        logger.warning(f"No se pudo notificar al admin {admin.user.id}: {e}")
+        except Exception as e:
+            logger.error(f"Error al obtener administradores: {e}")
 
 def main():
     app = ApplicationBuilder().token(TOKEN).build()

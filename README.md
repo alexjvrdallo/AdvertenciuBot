@@ -1,17 +1,16 @@
-# Bot Moderador para Telegram
+
+# Bot de Moderación para Telegram
 
 ## Funciones:
 - Detecta groserías y emite advertencias.
-- Silencia usuarios por 10 minutos cada 5 advertencias.
-- Notifica a administradores cada 2 advertencias.
-- Informa cambios de nombre de usuario.
-- Notifica a admins si un usuario regresa tras ser expulsado o salir.
+- Silencia usuarios por 10 minutos cada 5 advertencias (y aumenta 1 min cada vez).
+- Notifica a administradores cada 2 advertencias por privado.
+- Informa cambios de nombre de usuario o nombre visible.
+- Notifica si un usuario sale y luego vuelve al grupo.
 
-## Despliegue en Railway
+## Cómo desplegar en Railway
 
-1. Clona este repositorio o súbelo a Railway directamente.
-2. Crea una variable de entorno llamada `BOT_TOKEN` con el token de tu bot de @BotFather.
-3. Asegúrate de tener activado el bot como administrador en tu grupo.
-4. Inicia Railway y selecciona este proyecto.
-
-¡Listo!
+1. Sube los archivos a Railway o GitHub.
+2. Crea una variable de entorno llamada `BOT_TOKEN` con tu token de @BotFather.
+3. Asegúrate de que el bot sea administrador en el grupo.
+4. ¡Listo!
