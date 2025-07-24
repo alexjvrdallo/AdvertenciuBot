@@ -22,7 +22,7 @@ BAD_WORDS = [
 ]
 
 def contains_bad_word(text):
-    return any(re.search(rf"\\b{re.escape(word)}\\b", text, re.IGNORECASE) for word in BAD_WORDS)
+    return any(re.search(rf"\b{re.escape(word)}\b", text, re.IGNORECASE) for word in BAD_WORDS)
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("🤖 Bot de moderación activo.")
@@ -72,7 +72,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     old_firstname = firstnames.get(user_id)
     if old_firstname and old_firstname != user.first_name:
-        await update.message.reply_text(f"🔄 El usuario cambió su nombre de "{old_firstname}" a "{user.first_name}"")
+        await update.message.reply_text(f"🔄 El usuario cambió su nombre de '{old_firstname}' a '{user.first_name}'")
     firstnames[user_id] = user.first_name
 
 async def member_update(update: Update, context: ContextTypes.DEFAULT_TYPE):
