@@ -18,7 +18,7 @@ firstnames = {}
 
 BAD_WORDS = [
     "puta", "mierda", "cabron", "imbecil", "idiota", "perra", "pendejo",
-    "culiao", "marica", "verga", "coño", "hdp", "joder", "malparido"
+    "culiao", "Jetacas", "verga", "coño", "hdp", "joder", "malparido"
 ]
 
 def contains_bad_word(text):
